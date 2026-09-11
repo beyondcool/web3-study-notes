@@ -10,17 +10,17 @@
 
 想象一家老式证券交易所开张，需要哪些"人"？
 
-| 现实角色 | 本项目对应 | 一句话职责 |
-|---|---|---|
-| 股民 | **用户（钱包）** | 出钱、下单，签订单就像签委托单 |
-| 撮合大厅 | **撮合服务器（Relayer，链下）** | 高速收集委托单、配对买卖，自己**不碰钱** |
-| 场内红马甲 | **orderSender** | 把撮合结果递进交易所大厅的"传单员"，由它在链上发起交易并垫付 gas |
-| 登记结算中心 | **MetaNodeDealer** | 管所有人的保证金账户、验委托单真伪、定风控规则、兜底赔付 |
-| 各品种交易板 | **Perpetual**（每个市场一块板） | 只记本品种的持仓账本和资金费率 |
-| 报价台 | **Oracle（预言机）** | 广播"BTC 现在值多少钱"的权威报价 |
-| 费率调度员 | **fundingRateKeeper** | 定时触发资金费率更新 |
-| 收储商/秃鹫投资者 | **清算人（Liquidator）** | 盯盘抢清算、赚折扣差价 |
-| 风险准备金 | **insurance 保险账户** | 有人穿仓时赔钱 |
+| 现实角色      | 本项目对应                  | 一句话职责                               |
+| --------- | ---------------------- | ----------------------------------- |
+| 股民        | **用户（钱包）**             | 出钱、下单，签订单就像签委托单                     |
+| 撮合大厅      | **撮合服务器（Relayer，链下）**  | 高速收集委托单、配对买卖，自己**不碰钱**              |
+| 场内红马甲     | **orderSender**        | 把撮合结果递进交易所大厅的"传单员"，由它在链上发起交易并垫付 gas |
+| 登记结算中心    | **MetaNodeDealer**     | 管所有人的保证金账户、验委托单真伪、定风控规则、兜底赔付        |
+| 各品种交易板    | **Perpetual**（每个市场一块板） | 只记本品种的持仓账本和资金费率                     |
+| 报价台       | **Oracle（预言机）**        | 广播"BTC 现在值多少钱"的权威报价                 |
+| 费率调度员     | **fundingRateKeeper**  | 定时触发资金费率更新                          |
+| 收储商/秃鹫投资者 | **清算人（Liquidator）**    | 盯盘抢清算、赚折扣差价                         |
+| 风险准备金     | **insurance 保险账户**     | 有人穿仓时赔钱                             |
 
 这张表就是全系统的"演员表"。第 3 章会深入前两个合约（Dealer/Perpetual）的"总行与分行"关系，本章先把**每个角色为什么必须存在**讲清楚。
 
@@ -47,6 +47,7 @@ CEX（币安这类中心化交易所）里，上面所有角色都是**同一家
 ### 2.1 全景交互图：六大角色 + 三条辅助线
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph USERS["链下 · 用户侧"]
         USER["👤 用户钱包<br/>对订单做 EIP-712 签名<br/>资金自托管，私钥即身份"]
@@ -86,6 +87,7 @@ flowchart TB
 初学者最容易混淆"用户的钱去了哪"和"订单数据怎么走"。把它们分开画：
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph MONEY["💰 钱流（ERC20 代币的真实转移）"]
         M1["用户钱包 USDC"] -- "deposit: safeTransferFrom 存入" --> M2["Dealer 合约<br/>state.primaryCredit 记账 +1"]
@@ -214,12 +216,12 @@ function getMarkPrice() external view returns (uint256) {
 
 系统里有四种"话筒"，全部实现同一个 `getMarkPrice()` 接口：
 
-| 话筒 | 文件 | 用途 |
-|---|---|---|
-| OracleAdaptor | `oracle/OracleAdaptor.sol` | 主力：读 Chainlink，减去 USDC 波动，做心跳检查 |
-| PythOracleAdaptor | `oracle/PythOracleAdaptor.sol` | 备选：Pyth 拉取网（Pull 模式，更新更实时） |
-| ConstOracle | `oracle/ConstOracle.sol` | 测试桩：永远返回固定价格（写测试用） |
-| EmergencyOracle | `oracle/EmergencyOracle.sol` | 应急：Chainlink 挂掉时管理员手工喂价 |
+| 话筒                | 文件                             | 用途                              |
+| ----------------- | ------------------------------ | ------------------------------- |
+| OracleAdaptor     | `oracle/OracleAdaptor.sol`     | 主力：读 Chainlink，减去 USDC 波动，做心跳检查 |
+| PythOracleAdaptor | `oracle/PythOracleAdaptor.sol` | 备选：Pyth 拉取网（Pull 模式，更新更实时）      |
+| ConstOracle       | `oracle/ConstOracle.sol`       | 测试桩：永远返回固定价格（写测试用）              |
+| EmergencyOracle   | `oracle/EmergencyOracle.sol`   | 应急：Chainlink 挂掉时管理员手工喂价         |
 
 **设计思想是"适配器模式 + 单一接口"**：市场（Perpetual）的 `RiskParams.markPriceSource` 只存一个地址，完全不关心背后是 Chainlink 还是 Pyth。换预言机 = 改一个地址参数，业务代码零改动。同时 `OracleAdaptor` 内置了两道保险：**心跳检查**（价格太旧就用不了，防止清算人用陈旧价薅羊毛）和**偏离保护**（应急价格与 Chainlink 偏差超阈值就拒绝，防止管理员喂价作恶）。
 

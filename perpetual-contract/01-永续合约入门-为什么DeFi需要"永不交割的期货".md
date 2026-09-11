@@ -70,7 +70,7 @@
 ### 2.1 一笔永续合约交易的完整生命周期（从开仓到平仓/清算）
 
 ```mermaid
-
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph OFF["链下（免 Gas · 高频 · 可随时反悔）"]
         U1["用户 A：想以 30000 做多 1 BTC<br/>对订单做 EIP-712 签名"]
@@ -106,6 +106,7 @@ flowchart TB
 ### 2.2 CEX 传统期货 → 永续合约 → 本项目的概念映射
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph A["传统期货（CEX）"]
         A1["到期日交割<br/>价格强制收敛"]
