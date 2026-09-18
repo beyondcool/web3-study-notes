@@ -29,17 +29,17 @@
 
 ```
 orderSender                Perpetual                 Dealer(Trading库)
-   │ trade(tradeData)          │                          │
-   ├──────────────────────────►│                          │
-   │                           ├─ approveTrade ──────────►│ 验签(第7章)
-   │                           │                          ├─ 校验批次形状(数量守恒/排序)
-   │                           │                          ├─ 逐Maker价格匹配
-   │                           │                          ├─ 计算各方Δpaper/Δcredit/手续费
-   │                           │◄─ MatchResult ───────────┤
-   │                           ├─ 循环 _settle() 落账       │
-   │                           ├─ realizePnl(若平光) ─────►│
-   │                           ├─ isAllSafe 终审 ─────────►│
-   │                           │ 交易成立                   │
+   │ trade(tradeData)          │                                │
+   ├───────────────►│                                │
+   │                                     ├─ approveTrade ──►│ 验签(第7章)
+   │                                     │                                ├─ 校验批次形状(数量守恒/排序)
+   │                                     │                                ├─ 逐Maker价格匹配
+   │                                     │                                ├─ 计算各方Δpaper/Δcredit/手续费
+   │                                     │◄─ MatchResult  ──┤
+   │                                     ├─ 循环 _settle() 落账 │
+   │                                     ├─ realizePnl(若平光) ►│
+   │                                     ├─ isAllSafe 终审 ───►│
+   │                                     │ 交易成立                   │
 ```
 
 记住这个接力棒顺序：**Dealer 只算不改账，Perpetual 只改账不判断，风控在最后**。每一棒职责单一，这是理解撮合安全性的框架。
@@ -51,6 +51,7 @@ orderSender                Perpetual                 Dealer(Trading库)
 ### 2.1 `_matchOrders` 内部三步曲
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     IN["输入: orderHashList / orderList / matchPaperAmount<br/>约定: orderList[0]=Taker, 其余=Maker<br/>Maker 按签名者地址升序排列"]
     S1["第一步: 批次形状校验<br/>① 订单数 ≥ 2<br/>② 遍历检查 Maker 按地址升序<br/>   (相邻同地址=同一人多单, 合并去重)<br/>③ 断言: Taker成交量 == Σ Maker成交量"]
@@ -63,6 +64,7 @@ flowchart TB
 ### 2.2 数值实例总览：一笔两 Maker 的真实撮合
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph ORDERS["链下撮合结果"]
         T["Taker: 买 1.0 BTC<br/>限价 ≤ 30010<br/>(paper=+1e18, credit=-30010e6)"]
@@ -145,7 +147,7 @@ function _priceMatchCheck(Types.Order memory takerOrder, Types.Order memory make
 
 **判据推导**（源码注释里有完整版）：买入 Taker 的诉求是"Maker 的卖价 ≤ 我的买限价"，即
 
-$$\frac{makerCredit}{|makerPaper|} \le \frac{|takerCredit|}{|takerPaper|}$$
+$ \frac{makerCredit}{|makerPaper|} \le \frac{|takerCredit|}{|takerPaper|} $
 
 两边均为正数，交叉相乘消去除法：`makerCredit × takerPaper ≤ takerCredit × makerPaper`（注意符号在两边同负抵消）。**交叉相乘的妙处**：避免定点数除法，精度零损失，且天然处理整数溢出边界（0.8.x 下溢出即 revert，宁可失败不可算错）。这份"用乘法代替除法比较价格"的写法在第 3 章 `liquidate` 的价格保护里见过同款——本项目把这条技巧贯彻得很一致。
 

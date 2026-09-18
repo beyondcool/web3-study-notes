@@ -48,6 +48,7 @@
 ### 2.1 keeper 的一次费率更新：从链下计算到全市场账本漂移
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 sequenceDiagram
     autonumber
     participant K as fundingRateKeeper<br/>(链下机器人)
@@ -68,6 +69,7 @@ sequenceDiagram
 ### 2.2 读数增量 Δ 对多空的镜像影响（方向约定的数学图解）
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     DELTA["读数增量 Δ（例: +2e6, 即每 BTC 多头收 2 USDC）"]
     DELTA --> L["多头 paper > 0<br/>Δcredit = paper × Δ > 0<br/>账面改善（收钱）"]
@@ -182,12 +184,12 @@ $\sum paper = 0$ 恒成立，因为撮合保证每张多单都有对手空单（
 
 场景：BTC-PERP，8 小时结算一次。T1 时刻读数 0→+2e6（多头每 BTC 收 2 USDC）。
 
-| 参与者 | paper | Δcredit | 备注 |
-|---|---|---|---|
-| 多头甲（1 BTC） | +1e18 | +2e6 | 收 2 USDC |
-| 空头乙（1 BTC） | -1e18 | -2e6 | 付 2 USDC |
-| 多头丙（0.5 BTC） | +0.5e18 | +1e6 | 按 paper 线性分摊 |
-| **合计** | **0** | **0** | **零和 ✔** |
+| 参与者          | paper   | Δcredit | 备注           |
+| ------------ | ------- | ------- | ------------ |
+| 多头甲（1 BTC）   | +1e18   | +2e6    | 收 2 USDC     |
+| 空头乙（1 BTC）   | -1e18   | -2e6    | 付 2 USDC     |
+| 多头丙（0.5 BTC） | +0.5e18 | +1e6    | 按 paper 线性分摊 |
+| **合计**       | **0**   | **0**   | **零和 ✔**     |
 
 随后第 6 章的丙在 T2 加仓时，这份 +1e6 已经体现在其 credit 中，并被锚点反推固化——资金费引擎与记账引擎在数字上严丝合缝地咬合。
 

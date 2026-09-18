@@ -42,6 +42,7 @@
 ### 2.1 Factory、模板与克隆的全景
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph FACTORY["SubaccountFactory（一台复印机）"]
         TPL["template: immutable 模板地址<br/>(构造时部署一个 Subaccount<br/>并 init(factory) 自废武功)"]
@@ -69,6 +70,7 @@ flowchart TB
 ### 2.2 一个子账户从出生到交易的完整流程
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     C1["① newSubaccount()<br/>克隆 + init(用户)<br/>+ 注册进 registry"] --> C2["② execute 调 Dealer.deposit<br/>主账户给子账户入金<br/>deposit(amount, 0, 子账户)"]
     C2 --> C3["③ (可选) execute 调 setOperator<br/>授权策略机器人代签"]
@@ -205,13 +207,13 @@ mapping(address => address[]) subaccountRegistry;   // 用户 → 子账户列�
 
 ### (8) 子账户 vs `setOperator`：两种"代操作"的对照
 
-| 维度 | setOperator（第 5 章） | 子账户 |
-|---|---|---|
-| 身份 | 操作员**用你的身份**签单（订单 signer 还是你） | 合约**用自己的地址**独立开户 |
-| 风险隔离 | ❌ 与主账户完全共账 | ✔ 独立保证金、独立清算 |
-| 保证金共享 | 是（全仓） | 否（除非手动互相 deposit） |
-| 适用 | 单人多机器人 | 机构多交易员 / 多策略 / 对外托管 |
-| 实现成本 | 一个 mapping | 一份合约 + 复印机 |
+| 维度    | setOperator（第 5 章）            | 子账户                 |
+| ----- | ----------------------------- | ------------------- |
+| 身份    | 操作员**用你的身份**签单（订单 signer 还是你） | 合约**用自己的地址**独立开户    |
+| 风险隔离  | ❌ 与主账户完全共账                    | ✔ 独立保证金、独立清算        |
+| 保证金共享 | 是（全仓）                         | 否（除非手动互相 deposit）   |
+| 适用    | 单人多机器人                        | 机构多交易员 / 多策略 / 对外托管 |
+| 实现成本  | 一个 mapping                    | 一份合约 + 复印机          |
 
 **选型口诀**：只要"代下单"→ operator；要"隔离爆仓半径"→ 子账户。两者还能叠加：子账户 owner 再 setOperator 给策略机器人。
 

@@ -19,12 +19,12 @@ interface IPriceSource {
 
 然后接了**四路"通讯社"**，全部实现这一个接口：
 
-| 通讯社 | 文件 | 定位 | 价格来源 |
-|---|---|---|---|
-| OracleAdaptor | `oracle/OracleAdaptor.sol` | 主力 | Chainlink（Push 型，官方持续推送） |
-| PythOracleAdaptor | `oracle/PythOracleAdaptor.sol` | 混合增强 | Chainlink + Pyth 双源校验 |
-| ConstOracle | `oracle/ConstOracle.sol` | 测试桩 | 部署时写死的常量 |
-| EmergencyOracle | `oracle/EmergencyOracle.sol` | 应急 | 管理员手工喂价 |
+| 通讯社               | 文件                             | 定位   | 价格来源                     |
+| ----------------- | ------------------------------ | ---- | ------------------------ |
+| OracleAdaptor     | `oracle/OracleAdaptor.sol`     | 主力   | Chainlink（Push 型，官方持续推送） |
+| PythOracleAdaptor | `oracle/PythOracleAdaptor.sol` | 混合增强 | Chainlink + Pyth 双源校验    |
+| ConstOracle       | `oracle/ConstOracle.sol`       | 测试桩  | 部署时写死的常量                 |
+| EmergencyOracle   | `oracle/EmergencyOracle.sol`   | 应急   | 管理员手工喂价                  |
 
 类比：交易所前台挂一块大屏，**无论报价来自哪路通讯社，屏上格式统一**（1e18 精度、USDC 计价）。市场（Perpetual）通过 `RiskParams.markPriceSource` 指向其中一路，完全不关心背后是谁——**换通讯社 = 改一个地址参数**，业务代码零改动。这就是适配器模式在预言机场景的标准应用。
 
@@ -53,6 +53,7 @@ interface IPriceSource {
 ### 2.1 预言机家族的适配器拓扑
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph CONSUMERS["消费方（只认接口，不认实现）"]
         RISK["Liquidation 风控/清算<br/>markPriceSource.getMarkPrice()"]
@@ -82,6 +83,7 @@ flowchart TB
 ### 2.2 `PythOracleAdaptor.getPrice` 的三岔决策（本章最有意思的逻辑）
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     S["读 Chainlink 价格（必读，心跳检查）"]
     TRY{"try pyth.getPrice(priceId)"}
@@ -230,13 +232,13 @@ int256 price = SafeCast.toInt256(IPriceSource(params.markPriceSource).getMarkPri
 
 ### (8) 精度策略总表：三套刻度一家亲
 
-| 层 | 刻度 | 例（BTC=30000） | 出处 |
-|---|---|---|---|
-| Chainlink 原始值 | 8 位小数 | 3000000000000 | `latestRoundData()` |
-| 适配器中间值（资产/USDC） | 8 位小数 | 3000000000000 | `getChainLinkPrice` |
-| 系统统一值（getMarkPrice 出口） | 1e18 | 30000e18 | `(price × 1e18) / decimalsCorrection` |
-| 系统内部（paper/费率） | 1e18 | — | `Types.ONE` |
-| USDC credit | 1e6 | 30000e6 | USDC 原生精度 |
+| 层                      | 刻度    | 例（BTC=30000）  | 出处                                    |
+| ---------------------- | ----- | ------------- | ------------------------------------- |
+| Chainlink 原始值          | 8 位小数 | 3000000000000 | `latestRoundData()`                   |
+| 适配器中间值（资产/USDC）        | 8 位小数 | 3000000000000 | `getChainLinkPrice`                   |
+| 系统统一值（getMarkPrice 出口） | 1e18  | 30000e18      | `(price × 1e18) / decimalsCorrection` |
+| 系统内部（paper/费率）         | 1e18  | —             | `Types.ONE`                           |
+| USDC credit            | 1e6   | 30000e6       | USDC 原生精度                             |
 
 `decimalsCorrection = 10 ** _decimalsCorrection` 在构造函数里由部署参数算出（Chainlink 全家桶是 8，所以传 8）——**它是一个"必须与所接数据源匹配"的部署配置**，配错就是灾难（踩坑第 3 条）。
 
@@ -250,12 +252,12 @@ try pyth.getPrice(priceId) returns (PythStructs.Price memory pythPriceStruct) { 
 
 ### (10) 设计总复盘：预言机的"信任分层"
 
-| 层 | 信任对象 | 保护机制 |
-|---|---|---|
-| 正常 | Chainlink 网络共识 | 心跳检查（新鲜度） |
-| 波动 | Pyth 链下聚合 | 偏差触发切换（及时性） |
-| 应急 | 协议管理员 | 自定义价阈值（OracleAdaptor 内）/ 无（EmergencyOracle） |
-| 测试 | 无 | ConstOracle 常量 |
+| 层   | 信任对象           | 保护机制                                        |
+| --- | -------------- | ------------------------------------------- |
+| 正常  | Chainlink 网络共识 | 心跳检查（新鲜度）                                   |
+| 波动  | Pyth 链下聚合      | 偏差触发切换（及时性）                                 |
+| 应急  | 协议管理员          | 自定义价阈值（OracleAdaptor 内）/ 无（EmergencyOracle） |
+| 测试  | 无              | ConstOracle 常量                              |
 
 一句话总结：**每往下一层，保护越少、权力越大**。正常路径有多重数学护栏，应急路径只剩治理纪律。评估这类系统时，最重要的一个问题永远是：**"应急路径平时锁着吗？谁有钥匙？钥匙转动的瞬间有没有人能看到？"**
 

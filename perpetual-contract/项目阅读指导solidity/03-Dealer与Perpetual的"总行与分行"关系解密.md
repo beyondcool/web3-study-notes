@@ -17,13 +17,13 @@
 
 对应到代码里，几个关键事实：
 
-| 事实 | 代码体现 |
-|---|---|
-| 总行只有一家 | `MetaNodeDealer` 是一个可部署的单例合约 |
-| 分行可以有多家 | 每个 `Perpetual` 实例代表一个市场，通过 Dealer 注册 |
+| 事实       | 代码体现                                                                             |
+| -------- | -------------------------------------------------------------------------------- |
+| 总行只有一家   | `MetaNodeDealer` 是一个可部署的单例合约                                                     |
+| 分行可以有多家  | 每个 `Perpetual` 实例代表一个市场，通过 Dealer 注册                                             |
 | 总行是分行的上级 | `Perpetual` 构造时执行 `transferOwnership(dealer)`，即 **Dealer 是 Perpetual 的 `owner`** |
-| 保证金存在总行 | `state.primaryCredit[用户]` 在 Dealer 的存储里，Perpetual 里完全没有 ERC20 转账逻辑 |
-| 持仓存在分行 | `balanceMap`、`fundingRate` 是 Perpetual 自己的状态变量 |
+| 保证金存在总行  | `state.primaryCredit[用户]` 在 Dealer 的存储里，Perpetual 里完全没有 ERC20 转账逻辑               |
+| 持仓存在分行   | `balanceMap`、`fundingRate` 是 Perpetual 自己的状态变量                                   |
 
 ### 1.2 为什么要拆成两个合约？而不是一个大合约？
 
@@ -46,6 +46,7 @@
 ### 2.1 静态关系图：总行与分行的"双向握手"
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph Dealer["MetaNodeDealer（总行 · 单例）"]
         ST["MetaNodeStorage<br/>state.primaryCredit[用户] 保证金余额<br/>state.perpRiskParams[市场] 风控参数<br/>state.validOrderSender[地址] 撮合员白名单<br/>state.insurance 保险基金"]
@@ -91,6 +92,7 @@ flowchart TB
 ### 2.2 动态时序图：一笔交易的完整生命周期
 
 ```mermaid
+
 sequenceDiagram
     autonumber
     participant S as orderSender<br/>(链下撮合服务器)
@@ -372,14 +374,14 @@ function approveTrade(address orderSender, bytes calldata tradeData)
 
 ### 3.3 一张总表：两本账各记什么
 
-| 数据 | 记在哪 | 为什么 |
-|---|---|---|
-| USDC 保证金余额 `primaryCredit` | Dealer（总行） | 全局共享的清算资金，与具体市场无关 |
+| 数据                               | 记在哪           | 为什么                   |
+| -------------------------------- | ------------- | --------------------- |
+| USDC 保证金余额 `primaryCredit`       | Dealer（总行）    | 全局共享的清算资金，与具体市场无关     |
 | 持仓量 `paper` / 锚点 `reducedCredit` | Perpetual（分行） | 按市场隔离，同一个人在不同市场持仓互不混淆 |
-| 累计资金费率 `fundingRate` | Perpetual（分行） | 每个市场供需不同，费率独立漂移 |
-| 风控参数 `RiskParams` | Dealer（总行） | 风控是全局规则，但按市场下发参数 |
-| 已成交订单量 `orderFilledPaperAmount` | Dealer（总行） | 验签与防重放属于撮合域，不该污染分行账本 |
-| 持仓市场列表 `openPositions` | Dealer（总行） | 供 `isSafe` 跨市场汇总净值 |
+| 累计资金费率 `fundingRate`             | Perpetual（分行） | 每个市场供需不同，费率独立漂移       |
+| 风控参数 `RiskParams`                | Dealer（总行）    | 风控是全局规则，但按市场下发参数      |
+| 已成交订单量 `orderFilledPaperAmount`  | Dealer（总行）    | 验签与防重放属于撮合域，不该污染分行账本  |
+| 持仓市场列表 `openPositions`           | Dealer（总行）    | 供 `isSafe` 跨市场汇总净值    |
 
 ---
 

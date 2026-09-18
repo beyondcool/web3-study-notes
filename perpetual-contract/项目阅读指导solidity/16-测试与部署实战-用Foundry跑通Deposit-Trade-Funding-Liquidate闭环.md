@@ -19,12 +19,12 @@
 
 ### 1.2 Foundry 三件套与本项目的分工
 
-| 工具 | 作用 | 本项目对应 |
-|---|---|---|
-| `forge test` | 跑单元/场景测试 | `test/` 目录（24 个场景测试） |
+| 工具             | 作用        | 本项目对应                      |
+| -------------- | --------- | -------------------------- |
+| `forge test`   | 跑单元/场景测试  | `test/` 目录（24 个场景测试）       |
 | `forge script` | 广播部署/交易到链 | `script/` 目录（Sepolia 一键部署） |
-| `cast` | 单发查询/交易 | 部署后验链上状态 |
-| `anvil` | 本地开发链 | 手动联调后端时使用 |
+| `cast`         | 单发查询/交易   | 部署后验链上状态                   |
+| `anvil`        | 本地开发链     | 手动联调后端时使用                  |
 
 ### 1.3 本章路线图
 
@@ -37,7 +37,8 @@
 ### 2.1 测试体系：一套"剧组"架构
 
 ```mermaid
-flowchart TB
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
+flowchart LR
     subgraph INIT["test/init —— 搭景组"]
         TI["TradingInit<br/>造币(USDC/MUSD) + 部署 Dealer<br/>开 BTC/ETH 两个市场 + 配风控参数<br/>造人(Alice/Bob/Carol 固定私钥)"]
     end
@@ -62,7 +63,8 @@ flowchart TB
 ### 2.2 部署流水线：`DeploySepolia` 的一键开服
 
 ```mermaid
-flowchart LR
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
+flowchart TB
     ENV["环境变量<br/>MetaNode_DEPLOYER_PK(必填)<br/>ORDER_SENDER / KEEPER / INSURANCE(可选)"] --> RUN["forge script<br/>--rpc-url $SEPOLIA_RPC_URL<br/>--broadcast"]
     RUN --> D1["① (可选) TestERC20 'USDC' 6位小数"]
     D1 --> D2["② MetaNodeDealer(usdc)"]

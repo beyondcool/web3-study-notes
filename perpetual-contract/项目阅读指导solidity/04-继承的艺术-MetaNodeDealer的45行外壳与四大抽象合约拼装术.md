@@ -49,6 +49,7 @@ contract MetaNodeDealer is MetaNodeExternal, MetaNodeOperation, MetaNodeView {
 ### 2.1 继承树：四层拼装 + 两次"菱形"
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph OZ["OpenZeppelin 基建"]
         OWN["Ownable<br/>_owner 变量 + onlyOwner 修饰符"]
@@ -82,6 +83,7 @@ flowchart TB
 用 `forge inspect MetaNodeDealer storage-layout` 可以看到拍平后的真实存储（节选）：
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph SLOTS["MetaNodeDealer 最终存储布局"]
         S0["slot 0<br/>Ownable._owner<br/>(address)"]
@@ -224,12 +226,12 @@ function version() external pure returns (string memory) {
 
 设想另一种写法：部署 `DealerExternal`、`DealerOperation`、`DealerView` 三个独立合约，互相通过地址调用。对比一下：
 
-| 维度 | 继承拼装（本项目） | 多合约组合 |
-|---|---|---|
-| 状态共享 | 直接共享同一 `state`，零成本 | 必须跨合约读写，或复制状态（灾难） |
-| 调用开销 | 内部跳转（JUMP），几乎免费 | 每次跨合约 CALL 多花约 700+ gas |
-| 部署/升级 | 一个地址，状态原子一致 | 三个地址，状态可能不一致 |
-| 事务边界 | 一笔交易内自然回滚 | 跨合约失败处理复杂 |
+| 维度    | 继承拼装（本项目）          | 多合约组合                   |
+| ----- | ------------------ | ----------------------- |
+| 状态共享  | 直接共享同一 `state`，零成本 | 必须跨合约读写，或复制状态（灾难）       |
+| 调用开销  | 内部跳转（JUMP），几乎免费    | 每次跨合约 CALL 多花约 700+ gas |
+| 部署/升级 | 一个地址，状态原子一致        | 三个地址，状态可能不一致            |
+| 事务边界  | 一笔交易内自然回滚          | 跨合约失败处理复杂               |
 
 **状态共享需求决定了继承是这里的正确工具**。什么时候该用多合约组合？当各部分需要**独立升级**或**独立信任假设**时（比如 Perpetual 与 Dealer 就必须分开——它们生命周期不同）。"按生命周期拆合约，按权限拆继承"是本项目给出的组织范式。
 
@@ -268,7 +270,7 @@ function version() external pure returns (string memory) {
 1. **继承是"代码组织"工具，不是"权限隔离"工具**：三个楼层拍平后共用同一存储与同一 owner。如果你以为"External 层的 bug 不会影响 Operation 层"，就大错特错——**任何一层的重入、溢出、权限漏洞都会波及整栋楼**。安全分析必须以拍平后的完整合约为单位。
 2. **`is A, B` 的书写顺序影响 C3 线性化结果**：本项目所有基类构造函数无参、无函数覆盖，顺序无关紧要；但一旦出现**函数重载覆盖**（override）或带参构造，顺序错误会导致"调用了错误的实现"或"初始化顺序错乱"。复制本项目模式时，保持"先基础后派生"的书写习惯。
 3. **不要在子合约里声明与基类同名的状态变量**——编译器会直接报错（`DeclarationError`），这其实是好事：语言替你挡住了"两本账"事故。但要注意**不报错的相邻陷阱**：在 library 里用 `Types.State storage state` 参数名很方便，但如果你误把 `storage` 写成 `memory`，函数会在副本上操作、改动全部丢失——且编译不报错、测试可能也测不出来（只读测试碰巧通过）。传结构体进 library 时永远检查 storage 关键字。
-4. **加字段必须改 `Types.State`，且只能在结构体末尾追加**：在 mapping 大行其道的存储里插入新字段会改变后续所有字段的槽位分配。虽然本项目不打算升级代理，但养成"追加不插队"的习惯能避免未来的血泪。
+4. **加字段必须改 `Types.State`，且只能在结构体末尾追加**：在**已有字段中**插入新字段会改变后续所有字段的槽位分配。虽然本项目不打算升级代理，但养成"追加不插队"的习惯能避免未来的血泪。
 5. **`forge inspect` 是理解继承项目的第一工具**：拿到任何"多合约继承拼装"的项目，先跑 `storage-layout` 和 `method-identifiers` 建立拍平后的真实视图，再去读源文件，比按文件顺序硬读效率高一个数量级。
 
 ---

@@ -38,6 +38,7 @@
 ### 2.1 `Types.State` 字段地图：七大页签
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     STATE["Types.State（slot 2 起）"]
 
@@ -53,6 +54,7 @@ flowchart TB
 ### 2.2 取款时间锁的状态机：一个字段组的完整生命周期
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 stateDiagram-v2
     [*] --> 正常持有: deposit() primaryCredit += amount
     正常持有 --> 取款申请中: requestWithdraw()<br/>pendingPrimaryWithdraw = amount<br/>withdrawExecutionTimestamp = now + withdrawTimeLock
@@ -294,7 +296,7 @@ struct MatchResult {
 2. **不要假设 `openPositions` 数组顺序**：swap-and-pop 会让元素乱序。链下若按数组顺序对账，会在某次平仓后对不上。请一律通过 `(user, perp, positionSerialNum)` 三元组定位仓位生涯。
 3. **双轨数据的一致性靠纪律不靠机制**：`registeredPerp` 数组与 `perpRiskParams[perp].isRegistered` 可能失同步（例如软下架后忘记清理数组）。写新的管理函数时，凡是动其中一份，先检查另一份该不该动。
 4. **`requestWithdraw` 可被重复调用覆盖**：后一次请求会覆盖前一次的金额和时间戳（`pendingPrimaryWithdraw[from] = primaryAmount` 是赋值不是累加）。链下若有"多笔待取款"假设，会算错账。
-5. **struct 里新增字段 = 全体槽位重排**：`Types.State` 中间插字段会让所有 mapping 根槽号 +1。对已部署合约这等于数据错位灾难；即便在开发期，也会让旧测试的存储假设全部失效。**永远在结构体末尾追加字段**。
+5. **struct 里新增字段 可能让全体槽位重排**：`Types.State` **中间插字段**会让后面的变量Slot变化。对已部署合约这等于数据错位灾难；即便在开发期，也会让旧测试的存储假设全部失效。**永远在结构体末尾追加字段**。
 
 ---
 

@@ -11,12 +11,12 @@
 
 把账户风控想象成一场**持续进行的体检**，系统随时给每个交易者出一张体检报告，上面有四个指标、三档结论：
 
-| 体检指标 | 本项目对应 | 含义 |
-|---|---|---|
-| 全身家当（现金 + 资产市值 − 负债） | **netValue 净值** | 你此刻"值多少" |
-| 全部占用资源（不管买的多空，都算你占用了系统风险额度） | **exposure 敞口** | 你让系统背了多少价格风险 |
-| 参加剧烈运动的最低身体要求 | **initialMargin 初始保证金** = 敞口 × 初始保证金率 | **开新仓/提款**的资格线 |
-| 住进 ICU 的临界指标 | **maintenanceMargin 维持保证金** = 敞口 × 维持保证金率 | **被清算**的死亡线 |
+| 体检指标                        | 本项目对应                                     | 含义             |
+| --------------------------- | ----------------------------------------- | -------------- |
+| 全身家当（现金 + 资产市值 − 负债）        | **netValue 净值**                           | 你此刻"值多少"       |
+| 全部占用资源（不管买的多空，都算你占用了系统风险额度） | **exposure 敞口**                           | 你让系统背了多少价格风险   |
+| 参加剧烈运动的最低身体要求               | **initialMargin 初始保证金** = 敞口 × 初始保证金率     | **开新仓/提款**的资格线 |
+| 住进 ICU 的临界指标                | **maintenanceMargin 维持保证金** = 敞口 × 维持保证金率 | **被清算**的死亡线    |
 
 三档结论由两个比较产生：
 
@@ -44,6 +44,7 @@
 ### 2.1 体检报告的生成流程：`getTotalExposure`
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     START["_isMMSafe / _isIMSafe / getLiquidationPrice<br/>都需要同一份体检报告"]
     LOOP["遍历 openPositions[trader]<br/>(用户持仓市场列表, 第5章的心脏)"]
@@ -62,6 +63,7 @@ flowchart TB
 ### 2.2 数值例子的体检报告随行情变化
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph P0["价格 = 30000 (开仓点)"]
         A["netValue = 3000e6<br/>exposure = 30000e6<br/>IM = 3000e6, MM = 1500e6<br/>状态: 恰好 IM Safe (满杠杆)"]
@@ -155,13 +157,13 @@ function _isSolidIMSafe(Types.State storage state, address trader) internal view
 
 ### (4) 使用场景全景：哪扇门配哪把锁
 
-| 场景 | 检查档位 | 源码位置 | 拦住什么 |
-|---|---|---|---|
-| trade() 撮合落账后 | `isAllSafe`（对每个成交者查 MM） | Perpetual.trade | 成交后立刻爆仓的撮合 |
-| liquidate() 清算者侧 | `isSafe`（MM） | Perpetual.liquidate | 用将爆仓账户接盘套利 |
-| handleBadDebt() | `!isMMSafe`（反向用作坏账判定） | Liquidation | 误勾销健康账户（第 9 章） |
-| 取款 executeWithdraw | IM 级检查 | Funding | 提款后立即穿仓 |
-| orderSender 负手续费 | `_isSolidIMSafe` | approveTrade | 撮合员倒贴钱把自己贴爆 |
+| 场景                 | 检查档位                    | 源码位置                | 拦住什么           |
+| ------------------ | ----------------------- | ------------------- | -------------- |
+| trade() 撮合落账后      | `isAllSafe`（对每个成交者查 MM） | Perpetual.trade     | 成交后立刻爆仓的撮合     |
+| liquidate() 清算者侧   | `isSafe`（MM）            | Perpetual.liquidate | 用将爆仓账户接盘套利     |
+| handleBadDebt()    | `!isMMSafe`（反向用作坏账判定）   | Liquidation         | 误勾销健康账户（第 9 章） |
+| 取款 executeWithdraw | IM 级检查                  | Funding             | 提款后立即穿仓        |
+| orderSender 负手续费   | `_isSolidIMSafe`        | approveTrade        | 撮合员倒贴钱把自己贴爆    |
 
 **设计规律**：越靠近"资金离开系统"的操作，检查越严格（Solid）；纯持仓风险用第一档；批量终审用最快失败的单档。**锁的强度与门后资产的流动性成正比**。
 
@@ -228,11 +230,11 @@ function _isAllMMSafe(Types.State storage state, address[] calldata traderList) 
 
 ### (8) 数值例全景复盘（对照 2.2）
 
-| 时刻 | 价格 | 仓位价值 | netValue | exposure | IM | MM | 结论 |
-|---|---|---|---|---|---|---|---|
-| 开仓 | 30000 | 0 | 3000e6 | 30000e6 | 3000e6 | 1500e6 | 恰好 IM Safe |
-| 下跌 | 29500 | −500e6 | 2500e6 | 29500e6 | 2950e6 | 1475e6 | MM Safe，失 IM 资格 |
-| 触线 | 28421 | −1579e6 | 1421e6 | 28421e6 | 2842e6 | 1421e6 | 触 MM 线 → 可清算 |
+| 时刻  | 价格    | 仓位价值    | netValue | exposure | IM     | MM     | 结论              |
+| --- | ----- | ------- | -------- | -------- | ------ | ------ | --------------- |
+| 开仓  | 30000 | 0       | 3000e6   | 30000e6  | 3000e6 | 1500e6 | 恰好 IM Safe      |
+| 下跌  | 29500 | −500e6  | 2500e6   | 29500e6  | 2950e6 | 1475e6 | MM Safe，失 IM 资格 |
+| 触线  | 28421 | −1579e6 | 1421e6   | 28421e6  | 2842e6 | 1421e6 | 触 MM 线 → 可清算    |
 
 注意 IM 在价格下跌后**变大**了（敞口虽降，但基数不同——29500×10% = 2950 > 3000×10%×(30000/29500)…直观看：跌价后亏损吃掉了缓冲），这正是"10 倍杠杆账户几乎不允许浮亏"的数学表达：**从开仓点起，任何浮亏都会先剥夺 IM 资格，再走向 MM 线**。
 

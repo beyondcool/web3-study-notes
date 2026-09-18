@@ -38,6 +38,7 @@
 ### 2.1 一段仓位生涯的资金流转状态机
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 stateDiagram-v2
     [*] --> 持仓中: trade() 开仓<br/>锚点 = credit − paper×rate（含入场成本）
 
@@ -59,6 +60,7 @@ stateDiagram-v2
 ### 2.2 减仓时"盈亏固化"的机制图（本章核心，3.4 节笔算）
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph BEFORE["减仓前（2 BTC 多头）"]
         A1["credit = -60992e6<br/>= 2e18×5e6/1e18 + (-61002e6)"]

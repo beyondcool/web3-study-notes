@@ -18,11 +18,11 @@
 
 ### 1.2 View 面向的三类客人
 
-| 客人 | 关心什么 | 主要函数 |
-|---|---|---|
-| 前端/行情站 | 报价、账户资金、持仓 | `getMarkPrice` / `getCreditOf` / `getPositions` / `getFundingRate` |
-| 清算机器人 | 谁不健康、清算价多少、清算能赚多少 | `isSafe` / `getTraderRisk` / `getLiquidationPrice` / `getLiquidationCost` |
-| 撮合/集成方 | 订单余量、白名单、授权状态 | `getOrderFilledAmount` / `isOperatorValid` / `isCreditAllowed` |
+| 客人     | 关心什么              | 主要函数                                                                      |
+| ------ | ----------------- | ------------------------------------------------------------------------- |
+| 前端/行情站 | 报价、账户资金、持仓        | `getMarkPrice` / `getCreditOf` / `getPositions` / `getFundingRate`        |
+| 清算机器人  | 谁不健康、清算价多少、清算能赚多少 | `isSafe` / `getTraderRisk` / `getLiquidationPrice` / `getLiquidationCost` |
+| 撮合/集成方 | 订单余量、白名单、授权状态     | `getOrderFilledAmount` / `isOperatorValid` / `isCreditAllowed`            |
 
 ### 1.3 Operation 的三组钥匙
 
@@ -39,6 +39,7 @@
 ### 2.1 View 层函数地图：按使用场景分组
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     V["MetaNodeView（全部 view/pure，只读）"]
 
@@ -52,6 +53,7 @@ flowchart TB
 ### 2.2 Operation 层的权力光谱：从"常规运营"到"核按钮"
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart LR
     subgraph ROUTINE["🟢 常规运营（高频/自动化）"]
         F1["updateFundingRate<br/>keeper 每期调用"]
@@ -197,13 +199,13 @@ function setSecondaryAsset(Types.State storage state, address _secondaryAsset) e
 
 ### (10) 权力清单审计：owner 私钥被盗，哪条最致命？
 
-| 函数 | 作恶动作 | 破坏力 |
-|---|---|---|
-| `setPerpRiskParams` | 把某市场 `markPriceSource` 换成假预言机、抬高 `liquidationPriceOff` | ★★★★★ 定价权 + 清算赏金通吃，全市场仓位可被精准误清 |
-| `setInsurance` | 指向自己的钱包 | ★★★★★ 保险费与坏账兜底资金全部改道 |
-| `setOrderSender` | 加自己为撮合员 | ★★★☆☆ 可提交任意合法签名订单（仍需真签名，但可抢手续费/审查交易） |
-| `setWithdrawTimeLock` | 设为 0 | ★★★★☆ 拆掉取款缓冲，配合钓鱼可加速抽干 |
-| `setFundingRateKeeper` | 自任 keeper | ★★★★☆ 任意拨动全市场水表（第 10 章无幅度闸门） |
+| 函数                     | 作恶动作                                                   | 破坏力                                  |
+| ---------------------- | ------------------------------------------------------ | ------------------------------------ |
+| `setPerpRiskParams`    | 把某市场 `markPriceSource` 换成假预言机、抬高 `liquidationPriceOff` | ★★★★★ 定价权 + 清算赏金通吃，全市场仓位可被精准误清       |
+| `setInsurance`         | 指向自己的钱包                                                | ★★★★★ 保险费与坏账兜底资金全部改道                 |
+| `setOrderSender`       | 加自己为撮合员                                                | ★★★☆☆ 可提交任意合法签名订单（仍需真签名，但可抢手续费/审查交易） |
+| `setWithdrawTimeLock`  | 设为 0                                                   | ★★★★☆ 拆掉取款缓冲，配合钓鱼可加速抽干               |
+| `setFundingRateKeeper` | 自任 keeper                                              | ★★★★☆ 任意拨动全市场水表（第 10 章无幅度闸门）         |
 
 结论：**没有时间锁的多签，这串函数就是一颗顶两颗的核弹**。生产部署的第一课：`onlyOwner` 的 owner 不该是 EOA，而应是多签 + 时间锁。本项目把权限收拢成"一个门"（利于审计），但门后没有第二道闸——**收拢权力与制衡权力是两件事**。
 
