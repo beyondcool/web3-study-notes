@@ -231,7 +231,7 @@ if err != nil {
 %%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     subgraph L1["第 1 层：启动（Start）"]
-        A1["logx.Info(\"FundingRateKeeper starting...\")"]
+        A1["logx.Info('FundingRateKeeper starting...')"]
         A2["go k.settleLoop()<br/>★ 非阻塞——不挡住 main"]
         A1 --> A2
     end

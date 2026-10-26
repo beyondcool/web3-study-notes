@@ -28,18 +28,18 @@
 ### 1.3 全链路鸟瞰（与第 3 章时序图配合看）
 
 ```
-orderSender                Perpetual                 Dealer(Trading库)
-   │ trade(tradeData)          │                                │
-   ├───────────────►│                                │
-   │                                     ├─ approveTrade ──►│ 验签(第7章)
-   │                                     │                                ├─ 校验批次形状(数量守恒/排序)
-   │                                     │                                ├─ 逐Maker价格匹配
-   │                                     │                                ├─ 计算各方Δpaper/Δcredit/手续费
-   │                                     │◄─ MatchResult  ──┤
-   │                                     ├─ 循环 _settle() 落账 │
-   │                                     ├─ realizePnl(若平光) ►│
-   │                                     ├─ isAllSafe 终审 ───►│
-   │                                     │ 交易成立                   │
+orderSender           Perpetual                 Dealer(Trading库)
+   │ trade(tradeData)     │                                │
+   ├─────────────────────►│                                │
+   │                      ├─ approveTrade ────────────────►│ 验签(第7章)
+   │                      │                                ├─ 校验批次形状(数量守恒/排序)
+   │                      │                                ├─ 逐Maker价格匹配
+   │                      │                                ├─ 计算各方Δpaper/Δcredit/手续费
+   │                      │◄─ MatchResult  ────────────────┤
+   │                      ├─ 循环 _settle() 落账            │
+   │                      ├─ realizePnl(若平光) ──────────►│
+   │                      ├─ isAllSafe 终审 ──────────────►│
+   │                      │ 交易成立                        │
 ```
 
 记住这个接力棒顺序：**Dealer 只算不改账，Perpetual 只改账不判断，风控在最后**。每一棒职责单一，这是理解撮合安全性的框架。

@@ -252,7 +252,7 @@ eth_call = "在本地节点上模拟执行一次，然后丢弃结果"
 %%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
 flowchart TB
     S1["① 检查私钥<br/>if c.signerKey == nil → error"]
-    S1 --> S2["② ABI 编码调用数据<br/>perpABI.Pack(\"trade\", tradeData)"]
+    S1 --> S2["② ABI 编码调用数据<br/>perpABI.Pack('trade', tradeData)"]
     S2 --> S3["③ 取 nonce<br/>PendingNonceAt(ctx, c.fromAddr)<br/>★ 含内存池中的待打包交易"]
     S3 --> S4["④ 取 gasPrice<br/>SuggestGasPrice(ctx)<br/>× GasPriceMultiplier（1.2）"]
     S4 --> S5["⑤ 估 gasLimit<br/>EstimateGas(CallMsg{...})<br/>⚠️ 失败 → 兜底 maxGas<br/>⚠️ 超过 maxGas → 静默截断"]

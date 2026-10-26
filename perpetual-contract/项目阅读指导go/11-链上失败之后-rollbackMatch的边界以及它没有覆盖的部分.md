@@ -204,7 +204,7 @@ sequenceDiagram
 
 ```mermaid
 %%{init: {'flowchart': {'wrappingWidth': 1000}}}%%
-flowchart LR
+flowchart TB
     subgraph L1["第 1 级：remain（余额簿）"]
         R1["e.remain[orderId] += matchAmt"]
         R2["★ 如果 key 不存在，新建 big.NewInt(0) 再加"]
